@@ -371,7 +371,7 @@ export default function VideoMeetComponent() {
           <Button variant="contained" onClick={connect}>
             Connect
           </Button>
-
+          
           <div>
             <video ref={localVideoRef} autoPlay muted></video>
           </div>
@@ -382,4 +382,3 @@ export default function VideoMeetComponent() {
     </div>
   );
 }
-mmm
