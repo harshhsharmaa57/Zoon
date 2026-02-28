@@ -21,7 +21,7 @@ function HomeComponent() {
 
     return (
         <>
-
+            
             <div className="navBar">
 
                 <div style={{ display: "flex", alignItems: "center" }}>
