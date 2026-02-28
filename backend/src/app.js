@@ -9,7 +9,7 @@ import userRoutes from "./routes/users.route.js";
 const app = express();
 const server = createServer(app);
 const io = connectToSocket(server);
-
+const dbUrl = process.env.MONGO_URL;
 app.set("port", process.env.PORT || 8000);
 app.use(cors());
 app.use(express.json({ limit: "40kb" }));
@@ -22,7 +22,7 @@ app.get("/home", (req, res) => {
 
 const start = async () => {
   app.set("mongo_user");
-  const connectionDb = await mongoose.connect("mongodb://127.0.0.1:27017/Zoom");
+  const connectionDb = await mongoose.connect(dbUrl);
   console.log(`Mongo connected DB host: ${connectionDb.connection.host}`);
   server.listen(app.get("port"), () => {
     console.log("Listening to port 8000");
