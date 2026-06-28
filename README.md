@@ -1,6 +1,6 @@
-# Zoon / Meeting
+# Meeting
 
-**Zoon** is a full-stack real-time video meeting application built with **React**, **Node.js**, **Express**, **MongoDB**, **Socket.IO**, and **WebRTC**. It allows users to register, log in, join meeting rooms via URL, chat in the meeting, and store meeting history on the backend.
+**Meeting** is a full-stack real-time video meeting application built with **React**, **Node.js**, **Express**, **MongoDB**, **Socket.IO**, and **WebRTC**. It allows users to register, log in, join meeting rooms via URL, chat in the meeting, and store meeting history on the backend.
 
 ---
 
@@ -456,7 +456,7 @@ Possible enhancements:
 
 ---
 
-Thank you for using Zoon. This README documents the complete architecture, setup, and runtime behavior of the project.
+Thank you for using Meeting. This README documents the complete architecture, setup, and runtime behavior of the project.
 
 Harsh Kumar Sharma
 
