@@ -1,522 +1,462 @@
-# Meeting
+# Zoon / Meeting
 
-Meeting is a full-stack real-time video meeting web application that allows users to create and join video meeting rooms directly from the browser. The platform uses modern web technologies such as **Node.js, Express, MongoDB, Socket.IO, React, and WebRTC** to enable peer-to-peer video communication.
-
-The application supports authentication, meeting history tracking, and real-time communication between participants.
+**Zoon** is a full-stack real-time video meeting application built with **React**, **Node.js**, **Express**, **MongoDB**, **Socket.IO**, and **WebRTC**. It allows users to register, log in, join meeting rooms via URL, chat in the meeting, and store meeting history on the backend.
 
 ---
 
-# Live Demo
+## Table of Contents
 
-The application is deployed and accessible at
-
-http://meet-29j2.onrender.com/
-
-Users can create or join meetings directly from the browser without installing additional software.
-
----
-
-# Project Overview
-
-Meeting follows a **client-server architecture**.
-
-Frontend (React)
-
-* Handles UI rendering
-* Manages authentication state
-* Connects to backend APIs
-* Establishes WebRTC video streams
-
-Backend (Node.js + Express)
-
-* Handles authentication
-* Stores meeting history
-* Provides REST APIs
-* Manages Socket.IO signaling server
-
-Database (MongoDB)
-
-* Stores users
-* Stores meeting activity history
+1. Project Overview
+2. System Architecture
+3. Backend Overview
+4. Frontend Overview
+5. Data Models
+6. Authentication Flow
+7. Meeting Room Flow
+8. Socket.IO and WebRTC Details
+9. Routing and Pages
+10. Environment Configuration
+11. Installation and Local Run
+12. Deployment
+13. Dependencies and Scripts
+14. Project Structure
+15. Known Limitations and Notes
+16. Future Improvements
+17. Author
 
 ---
 
-# Tech Stack
+## 1. Project Overview
 
-## Frontend
+This repo contains two separate applications:
 
-* React
-* React Router
-* Context API
-* WebRTC
-* Socket.IO Client
-* HTML
-* CSS
-* JavaScript
+- `backend`: Express server with REST APIs, authentication, MongoDB persistence, and Socket.IO signaling.
+- `frontend`: React single-page application with login/register screens, protected dashboard, meeting room UI, and chat.
 
-## Backend
-
-* Node.js
-* Express.js
-* Socket.IO
-* MongoDB
-* Mongoose
-
-## Security
-
-* bcrypt (password hashing)
-* crypto (token generation)
-* dotenv (environment configuration)
-* cors (cross origin support)
-
-## Deployment
-
-* Render
+The application is designed for browser-based real-time video meetings without native desktop software.
 
 ---
 
-# System Architecture
+## 2. System Architecture
 
 ```
-Client Browser (React)
-        |
-        |
-Socket.IO + REST APIs
-        |
-        |
-Node.js + Express Server
-        |
-        |
-MongoDB Database
+Browser (React SPA)
+       │
+       │  REST API / Socket.IO
+       ▼
+Node.js + Express Backend
+       │
+       │  MongoDB via Mongoose
+       ▼
+   MongoDB Database
 ```
 
-WebRTC enables **peer-to-peer media streaming**, while Socket.IO acts as a **signaling server** for exchanging connection information.
+- The frontend provides the UI and local WebRTC media handling.
+- The backend handles user auth, meeting history, and Socket.IO signaling.
+- MongoDB stores user accounts and previously joined meeting codes.
 
 ---
 
-# Project Structure
+## 3. Backend Overview
 
-```
-Meeting
-│
-├── backend
-│   ├── controllers
-│   │    ├── user.controller.js
-│   │    └── socketManager.js
-│   │
-│   ├── models
-│   │    ├── user.model.js
-│   │    └── meeting.model.js
-│   │
-│   ├── routes
-│   │    └── users.route.js
-│   │
-│   └── server.js
-│
-├── frontend
-│   ├── pages
-│   │    ├── landing
-│   │    ├── authentication
-│   │    ├── home
-│   │    ├── history
-│   │    └── VideoMeet
-│   │
-│   ├── contexts
-│   │    └── AuthContext
-│   │
-│   └── App.js
-│
-└── README.md
-```
+### Entry point: `backend/src/app.js`
+
+- Loads environment variables from `.env` using `dotenv/config`.
+- Creates an Express app and an HTTP server.
+- Connects Socket.IO to the server with CORS enabled.
+- Parses JSON and URL-encoded payloads.
+- Registers routes:
+  - `/health`
+  - `/api/v1/users`
+- Connects to MongoDB using `process.env.MONGO_URL`.
+- Starts the server on `process.env.PORT` or `8000`.
+
+### Backend scripts in `backend/package.json`
+
+- `dev`: `nodemon src/app.js`
+- `start`: `node src/app.js`
+- `prod`: `pm2 src/app.js`
+
+### Backend dependencies
+
+- `express`
+- `mongoose`
+- `socket.io`
+- `cors`
+- `dotenv`
+- `bcrypt`
+- `crypto`
+- `http-status`
 
 ---
 
-# Backend API
+## 4. Frontend Overview
 
-Base API path
+### Entry point: `frontend/src/main.jsx`
 
-```
-/api/v1/users
-```
+- Renders the React app inside `<StrictMode>`.
+- Uses `App.jsx` as the root component.
 
----
+### Root application: `frontend/src/App.jsx`
 
-# API Endpoints
+- Wraps the app with React Router and `AuthProvider`.
+- Defines routes for landing, auth, home, history, and video meeting pages.
 
-## Health Check
+### Frontend configuration: `frontend/src/environment.js`
 
-```
-GET /health
-```
+- Returns the backend URL depending on the `IS_PROD` flag.
+- Current production backend URL: `https://zoon-d6co.onrender.com`
+- For local development, set `IS_PROD = false` to use `http://localhost:8000`.
 
-Purpose
+### Frontend dependencies
 
-Verify that the backend server is running.
-
-Response
-
-```
-{
-  "Hello": "world"
-}
-```
+- `react`, `react-dom`
+- `react-router-dom`
+- `axios`
+- `socket.io-client`
+- `@mui/material`, `@mui/icons-material`, `@emotion/react`, `@emotion/styled`
+- `http-status`
 
 ---
 
-# Authentication Endpoints
+## 5. Data Models
 
-## Register User
+### User model: `backend/src/models/user.model.js`
 
-```
-POST /api/v1/users/register
-```
+Fields:
 
-Creates a new user account.
+- `name`: String, required
+- `username`: String, required, unique
+- `password`: String, required (stored hashed)
+- `token`: String
 
-Request Body
+### Meeting model: `backend/src/models/meeting.model.js`
 
-```
-{
-  "name": "Harsh",
-  "username": "harsh123",
-  "password": "password123"
-}
-```
+Fields:
 
-Process
-
-1. Checks if the username already exists
-2. Hashes password using bcrypt
-3. Saves user to MongoDB
-4. Returns success response
-
-Response
-
-```
-{
-  "message": "User Registered"
-}
-```
+- `user_id`: String
+- `meetingCode`: String, required
+- `date`: Date, defaults to current time
 
 ---
 
-# Login User
+## 6. Authentication Flow
 
-```
-POST /api/v1/users/login
-```
+### Register
 
-Authenticates a user.
+- `POST /api/v1/users/register`
+- Validates that the requested username does not already exist.
+- Hashes the password using `bcrypt` with salt rounds of `10`.
+- Stores the user record in MongoDB.
+- Returns `201 Created` with `{ message: "User Registered" }`.
 
-Request Body
+### Login
 
-```
-{
-  "username": "harsh123",
-  "password": "password123"
-}
-```
+- `POST /api/v1/users/login`
+- Finds the user by `username`.
+- Compares the plaintext password to the stored hashed password.
+- If valid, generates a random token using `crypto.randomBytes(20).toString('hex')`.
+- Saves the token to the user document.
+- Returns `200 OK` with `{ token: "..." }`.
 
-Process
+### Token usage
 
-1. Finds user in MongoDB
-2. Compares hashed password using bcrypt
-3. Generates random authentication token
-4. Saves token in user document
-5. Returns token
-
-Response
-
-```
-{
-  "token": "random_generated_token"
-}
-```
-
-The token is later used to authenticate activity requests.
+- The frontend stores the token in `localStorage`.
+- Protected pages use `withAuth` HOC to check for token presence.
+- Meeting history endpoints send the token to identify the user.
 
 ---
 
-# Meeting Activity Endpoints
+## 7. Meeting Room Flow
 
-These endpoints manage **meeting history**.
+### Meeting creation / join
 
----
+- The video meeting page is reached via a route parameter: `/:url`.
+- Example room URL: `/meeting123`.
+- The `VideoMeet` component uses the browser route to join the room.
+- When joining via the home page, the app saves the meeting code to the user's history.
 
-## Add Meeting to History
+### Room identifier
 
-```
-POST /api/v1/users/add_to_activity
-```
+- The client emits `join-call` with `window.location.href`.
+- The backend groups sockets by this path string.
+- All participants in the same URL share the same meeting room.
 
-Adds a meeting code to the user's activity history.
+### Meet landing and lobby
 
-Request Body
-
-```
-{
-  "token": "user_token",
-  "meeting_code": "meeting123"
-}
-```
-
-Process
-
-1. Finds user by token
-2. Creates a meeting entry
-3. Saves meeting code to MongoDB
-
-Response
-
-```
-{
-  "message": "Added code to history"
-}
-```
+- The page first asks for a username.
+- Once entered, the user clicks `Connect`.
+- Media permissions are requested for camera and microphone.
 
 ---
 
-## Get User Meeting History
+## 8. Socket.IO and WebRTC Details
 
-```
-GET /api/v1/users/get_all_activity
-```
+### Backend Socket Manager: `backend/src/controllers/socketManager.js`
 
-Returns the meeting history of a user.
+- Creates a Socket.IO server instance.
+- Stores active meeting connections in an in-memory `connections` object keyed by room path.
+- Stores in-room chat messages in an in-memory `messages` object.
+- On socket connection:
+  - `join-call`: adds socket to the room list and notifies all peers with `user-joined`.
+  - `signal`: forwards WebRTC SDP/ICE messages to a specific peer.
+  - `chat-message`: broadcasts chat text to all peers in the same room.
+  - `disconnect`: removes the socket from the room and broadcasts `user-left`.
 
-Query Parameter
+### Client WebRTC flow: `frontend/src/pages/VideoMeet.jsx`
 
-```
-?token=user_token
-```
+- Uses `navigator.mediaDevices.getUserMedia` for local audio/video.
+- Uses `RTCPeerConnection` with Google STUN server at `stun:stun.l.google.com:19302`.
+- When peers join, it creates offers and answers and exchanges SDP over Socket.IO.
+- On `user-joined`, a new peer connection is created for each participant.
+- Local media tracks are added to each peer connection.
 
-Example
+### Chat functionality
 
-```
-GET /api/v1/users/get_all_activity?token=abc123
-```
+- Sends `chat-message` events containing the message text and sender name.
+- Incoming messages are appended to the chat panel.
+- New message count is shown with a badge.
 
-Response
+### Media controls
 
-```
-[
-  {
-    "user_id": "harsh123",
-    "meetingCode": "meeting123"
-  }
-]
-```
+The meeting UI supports:
 
----
+- Toggle camera on/off
+- Toggle microphone on/off
+- End call and return to landing page
+- Screen share if the browser supports `getDisplayMedia`
 
-# Database Schema
+### Screen sharing
 
-## User Model
-
-```
-User
- ├── name
- ├── username
- ├── password (hashed)
- ├── token
- └── createdAt
-```
+- If available, screen sharing can be toggled.
+- When enabled, the app requests display media with audio.
+- The stream is published to the same peer connections.
 
 ---
 
-## Meeting Model
+## 9. Routing and Pages
 
-```
-Meeting
- ├── user_id
- ├── meetingCode
- └── createdAt
-```
+### Frontend pages
 
----
+- `LandingPage` (`/`): marketing-style landing page with guest join and login/register navigation.
+- `Authentication` (`/auth`): login/register form using Material UI.
+- `HomeComponent` (`/home`): authenticated dashboard for entering a meeting code and navigating to history.
+- `History` (`/history`): displays previously joined meeting codes with dates.
+- `VideoMeetComponent` (`/:url`): real-time meeting room with video, chat, and controls.
 
-# Frontend Routes
+### Protected routes
 
-The React application defines several client routes.
+- `HomeComponent` is wrapped with `withAuth` to enforce login.
+- `withAuth` redirects to `/auth` if no token is found in `localStorage`.
 
-```
-/            → Landing Page
-/auth        → Login / Register Page
-/home        → Main Dashboard
-/history     → User Meeting History
-/:url        → Video Meeting Room
-```
+### Navigation
 
----
-
-# Video Meeting System
-
-When a user joins a meeting room
-
-1. The URL `/meetingCode` opens the VideoMeet component.
-2. The client connects to the Socket.IO server.
-3. WebRTC peer connections are created.
-4. Media streams are exchanged between peers.
-5. The meeting runs directly between browsers.
+- Landing page offers guest join or auth flow.
+- Auth page switches between sign in and sign up.
+- Home page includes logout, history, and join button.
+- History page has a back button to `/home`.
 
 ---
 
-# Authentication Flow
+## 10. Environment Configuration
 
-```
-User registers
-     ↓
-User logs in
-     ↓
-Server generates token
-     ↓
-Token stored on client
-     ↓
-Token used for API requests
-     ↓
-Meeting history stored
-```
+### Backend `.env`
 
----
+Create `backend/.env` with:
 
-# Meeting History System
-
-Whenever a user joins or creates a meeting
-
-1. Frontend sends meeting code
-2. Backend stores meeting code
-3. Entry saved in MongoDB
-4. User can view history in `/history` page
-
----
-
-# Real-Time Communication
-
-Meeting uses **Socket.IO** to handle real-time signaling between clients.
-
-Typical socket events include
-
-* connection
-* join-room
-* user-connected
-* user-disconnected
-* signal exchange for WebRTC
-
-These events allow browsers to establish peer connections.
-
----
-
-# Installation
-
-## Clone the repository
-
-```
-git clone https://github.com/harshhsharmaa57/Zoon.git
-```
-
-```
-cd Zoon
-```
-
----
-
-# Install Backend Dependencies
-
-```
-cd backend
-npm install
-```
-
----
-
-# Install Frontend Dependencies
-
-```
-cd ../frontend
-npm install
-```
-
----
-
-# Environment Variables
-
-Create a `.env` file in backend.
-
-```
+```env
 PORT=8000
 MONGO_URL=your_mongodb_connection_string
 ```
 
+### Frontend server config
+
+`frontend/src/environment.js` currently defines:
+
+```js
+let IS_PROD = true;
+const server = IS_PROD
+  ? "https://zoon-d6co.onrender.com"
+  : "http://localhost:8000";
+
+export default server;
+```
+
+For local development, set `IS_PROD = false`.
+
 ---
 
-# Run Backend
+## 11. Installation and Local Run
 
-```
+### Backend
+
+```bash
 cd backend
+npm install
+npm run dev
+```
+
+or
+
+```bash
 npm start
 ```
 
-Server runs on
+### Frontend
 
-```
-http://localhost:8000
-```
-
----
-
-# Run Frontend
-
-```
+```bash
 cd frontend
-npm start
+npm install
+npm run dev
 ```
 
-Frontend runs on
+### Local defaults
 
-```
-http://localhost:3000
-```
-
----
-
-# Deployment
-
-The project is deployed on Render.
-
-Live URL
-
-http://meet-29j2.onrender.com/
+- Backend: `http://localhost:8000`
+- Frontend: `http://localhost:5173` or Vite default port
 
 ---
 
-# Features
+## 12. Deployment
 
-* Real time video meeting rooms
-* WebRTC peer-to-peer streaming
-* User authentication
-* Meeting history tracking
-* Token based authentication
-* MongoDB data persistence
-* React based UI
-* Socket.IO signaling server
+The frontend is configured to point to a production backend URL when `IS_PROD` is `true`.
 
----
+Current production backend URL:
 
-# Future Improvements
+- `https://zoon-d6co.onrender.com`
 
-Possible future improvements
+Current live deployment URL mentioned in earlier docs:
 
-* Screen sharing
-* Chat during meetings
-* Meeting recording
-* User profile management
-* TURN server support
-* Mobile responsiveness
-* Docker containerization
+- `http://meet-29j2.onrender.com/`
 
 ---
 
-# Author
+## 13. Dependencies and Scripts
+
+### Backend `package.json`
+
+- `bcrypt`: password hashing
+- `cors`: Cross-Origin Resource Sharing
+- `crypto`: random token generation
+- `dotenv`: environment variables
+- `express`: HTTP server
+- `http-status`: status code constants
+- `mongoose`: MongoDB ODM
+- `nodemon`: development auto-restart
+- `socket.io`: real-time signaling
+
+### Frontend `package.json`
+
+- `@emotion/react`, `@emotion/styled`: styling engine for Material UI
+- `@mui/material`, `@mui/icons-material`: UI component library
+- `axios`: HTTP client
+- `http-status`: status code constants
+- `react`, `react-dom`: React framework
+- `react-router-dom`: routing
+- `socket.io-client`: client-side Socket.IO
+- `vite`: frontend tooling
+- `eslint`: linting
+- `@types/react`, `@types/react-dom`: TypeScript types for React
+- `@vitejs/plugin-react`: Vite plugin for React
+
+### Available scripts
+
+#### Backend
+
+- `npm run dev`: start backend with nodemon
+- `npm start`: start backend with node
+- `npm run prod`: start backend with pm2
+
+#### Frontend
+
+- `npm run dev`: start Vite dev server
+- `npm run build`: build production bundle
+- `npm run preview`: preview production build
+- `npm run lint`: run ESLint
+
+---
+
+## 14. Project Structure
+
+### Root
+
+- `README.md`
+- `backend/`
+- `frontend/`
+
+### Backend
+
+- `backend/package.json`
+- `backend/src/app.js`
+- `backend/src/controllers/user.controller.js`
+- `backend/src/controllers/socketManager.js`
+- `backend/src/models/user.model.js`
+- `backend/src/models/meeting.model.js`
+- `backend/src/routes/users.route.js`
+
+### Frontend
+
+- `frontend/package.json`
+- `frontend/index.html`
+- `frontend/src/main.jsx`
+- `frontend/src/App.jsx`
+- `frontend/src/environment.js`
+- `frontend/src/pages/landing.jsx`
+- `frontend/src/pages/authentication.jsx`
+- `frontend/src/pages/home.jsx`
+- `frontend/src/pages/history.jsx`
+- `frontend/src/pages/VideoMeet.jsx`
+- `frontend/src/contexts/AuthContext.jsx`
+- `frontend/src/utils/withAuth.jsx`
+- `frontend/src/styles/videoComponent.module.css`
+- `frontend/src/App.css`
+- `frontend/src/index.css`
+
+---
+
+## 15. Known Limitations and Notes
+
+- Authentication is token-based but not JWT-based. The token is stored in the user document and in `localStorage`.
+- The backend does not validate tokens with expiration.
+- The room identifier uses the browser URL string for `join-call`, so users must use the exact same URL to join the same meeting.
+- The Socket.IO room state is stored in memory and will be lost when the server restarts.
+- Chat messages are kept in memory for the room only and are not persisted in the database.
+- Screen sharing relies on browser support for `navigator.mediaDevices.getDisplayMedia`.
+- The `HomeComponent` is protected by `withAuth`, but other routes such as history are not explicitly protected.
+
+---
+
+## 16. Future Improvements
+
+Possible enhancements:
+
+- Add TURN server support for NAT traversal.
+- Persist chat messages in MongoDB.
+- Add proper JWT authentication with refresh tokens.
+- Add user profile and settings pages.
+- Add meeting room participant names and status indicators.
+- Improve responsive layout for mobile devices.
+- Add meeting recording and playback.
+- Refactor WebRTC peer management for stability.
+- Add automated tests for backend and frontend.
+
+---
+
+## 17. Author
+
+- `harsh`
+
+---
+
+## 18. Additional Notes
+
+- `frontend/src/environment.js` currently hardcodes the backend server URL. Update this file for your target environment.
+- If you run the frontend and backend locally, set `IS_PROD = false` and use a matching local `MONGO_URL`.
+- The backend health endpoint is available at `http://localhost:8000/health`.
+
+---
+
+Thank you for using Zoon. This README documents the complete architecture, setup, and runtime behavior of the project.
 
 Harsh Kumar Sharma
 
